@@ -31,6 +31,8 @@ sudo chmod +x install.sh ubuntu.sh artisan
 sudo ./install.sh
 ```
 
+**NOTE: If you are running UNIT3D-Community-Edition on a non-HTTPS instance you MUST change the following configs.**
+
 ```
 .env  <-- SESSION_SECURE_COOKIE must be set to false
 config/secure-headers.php   <-- HTTP Strict Transport Security must be set to false
