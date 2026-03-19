@@ -23,9 +23,8 @@ Installer for the [UNIT3D-Community-Edition](https://github.com/stivi05/UNIT3D).
 
 **To install run the following:** (and follow the instructions. Must be a fresh dedicated server with nothing on it besides supported OS. Also must have a proper valid domain pointing to your server IP via A RECORD and CNAME for www)
 
-```bash
 sudo apt update && sudo apt -y install git
-sudo git clone [https://github.com/stivi05/UNIT3D-Installer.git](https://github.com/stivi05/UNIT3D-Installer.git) installer
+sudo git clone https://github.com/stivi05/UNIT3D-Installer.git installer
 cd installer
 sudo chmod +x install.sh ubuntu.sh artisan
 sudo ./install.sh
