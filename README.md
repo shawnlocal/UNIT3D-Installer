@@ -23,12 +23,15 @@ Installer for the [UNIT3D-Community-Edition](https://github.com/stivi05/UNIT3D).
 
 **To install run the following:** (and follow the instructions. Must be a fresh dedicated server with nothing on it besides supported OS. Also must have a proper valid domain pointing to your server IP via A RECORD and CNAME for www)
 
+```
 sudo apt update && sudo apt -y install git
 sudo git clone https://github.com/stivi05/UNIT3D-Installer.git installer
 cd installer
 sudo chmod +x install.sh ubuntu.sh artisan
 sudo ./install.sh
+```
 
+```
 .env  <-- SESSION_SECURE_COOKIE must be set to false
 config/secure-headers.php   <-- HTTP Strict Transport Security must be set to false
 config/secure-headers.php   <-- Content Security Policy must be disabled
