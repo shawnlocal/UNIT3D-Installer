@@ -2,140 +2,138 @@
 export DEBIAN_FRONTEND=noninteractive
 export DEBCONF_NOWARNINGS=yes
 
+# Включваме цветовете (увери се, че пътя е правилен)
 source tools/colors.sh
 
-rm -rf /var/lib/dpkg/lock
-rm -rf /var/cache/debconf/*.*
+# Почистване на заключени файлове на apt, ако има такива
+rm -f /var/lib/dpkg/lock*
+rm -f /var/cache/apt/archives/lock
+rm -f /var/lib/apt/lists/lock
 
 echo -e "\n\n$Purple Preparing Environment For The Installer ... $Color_Off"
 echo "============================================="
 
+# Проверка и настройка на Locale
 check_locale() {
-
-    echo -e "\n$Cyan Setting UTF8 ...$Color_Off"
-
+    echo -e "\n$Cyan Setting UTF8 Locale ...$Color_Off"
     apt-get -qq update
-    apt-get install -qq apt-utils language-pack-en-base > /dev/null
+    apt-get install -qq -y apt-utils language-pack-en-base > /dev/null
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8
-    apt-get install -qq software-properties-common > /dev/null
-
+    update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
     echo -e "$IGreen OK $Color_Off"
 }
 
-# Adds PPA's
+# Добавяне на PPA хранилища
 add_ppa() {
     echo -e "\n$Cyan Adding PPA Repositories ... $Color_Off"
-
+    apt-get install -qq -y software-properties-common > /dev/null
     for ppa in "$@"; do
         add-apt-repository -y $ppa > /dev/null 2>&1
         check $? "Adding $ppa Failed!"
     done
-
     echo -e "$IGreen OK $Color_Off"
 }
 
-# Installs Environment Prerequisites
+# Инсталиране на пакети и услуги
 add_pkgs() {
-    # Update apt
     echo -e "\n$Cyan Updating Packages ... $Color_Off"
-
     apt-get -qq update > /dev/null
     check $? "Updating packages Failed!"
-
     echo -e "$IGreen OK $Color_Off"
 
-    # PHP
-    echo -e "\n$Cyan Installing PHP ... $Color_Off"
-
-#    apt-get -qq install curl php-pear php8.3-common php8.3-cli php8.3-fpm php8.3-{redis,bcmath,curl,dev,gd,igbinary,intl,mbstring,mysql,opcache,readline,xml,zip} > /dev/null
-#    apt-get -qq install curl php-pear php8.4-common php8.4-cli php8.4-fpm php8.4-redis php8.4-bcmath php8.4-curl php8.4-dev php8.4-gd php8.4-igbinary php8.4-intl php8.4-mbstring php8.4-mysql php8.4-opcache php8.4-readline php8.4-xml php8.4-zip > /dev/null
-    apt-get -qq install curl php-pear php8.4-common php8.4-cli php8.4-fpm php8.4-redis php8.4-bcmath php8.4-curl php8.4-dev php8.4-gd php8.4-igbinary php8.4-intl php8.4-mbstring php8.4-mysql php8.4-opcache php8.4-readline php8.4-xml php8.4-zip
+    # PHP 8.4 и всички нужни разширения за UNIT3D v9+
+    echo -e "\n$Cyan Installing PHP 8.4 & Extensions ... $Color_Off"
+    apt-get -qq install -y curl php-pear php8.4-common php8.4-cli php8.4-fpm \
+    php8.4-mysql php8.4-xml php8.4-curl php8.4-mbstring \
+    php8.4-zip php8.4-bcmath php8.4-gd php8.4-intl \
+    php8.4-readline php8.4-opcache php8.4-igbinary \
+    php8.4-redis php8.4-imagick php8.4-sqlite3 php8.4-memcached > /dev/null
 
     check $? "Installing PHP Failed!"
-
     echo -e "$IGreen OK $Color_Off"
 
-    # Redis
-    echo -e "\n$Cyan Installing Redis ... $Color_Off"
-
-    curl -fsSL https://packages.redis.io/gpg | sudo gpg --yes --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
-    echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list > /dev/null
+    # Redis Stack (Официално хранилище за по-нова версия)
+    echo -e "\n$Cyan Installing Redis Server ... $Color_Off"
+    curl -fsSL https://packages.redis.io/gpg | gpg --yes --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+    echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/redis.list > /dev/null
     apt-get -qq update > /dev/null
-    apt-get -qq install redis > /dev/null
-
+    apt-get -qq install -y redis > /dev/null
+    
+    systemctl enable --now redis-server > /dev/null
     echo -e "$IGreen OK $Color_Off"
 
-    # Symlink Redis and Enable
-    echo -e "\n$Cyan Symlink and Enabling Redis ... $Color_Off"
+    # Meilisearch (Задължително за търсачката на UNIT3D)
+    echo -e "\n$Cyan Installing Meilisearch ... $Color_Off"
+    curl -L https://install.meilisearch.com | sh > /dev/null 2>&1
+    mv meilisearch /usr/local/bin/
+    chmod +x /usr/local/bin/meilisearch
 
-    systemctl -q enable --now redis-server
-    systemctl is-active --quiet redis-server && echo -e "$IGreen OK $Color_Off"||echo -e "$IRed NOK $Color_Off"
+    # Автоматично създаване на Meilisearch Service
+    cat <<EOF > /etc/systemd/system/meilisearch.service
+[Unit]
+Description=Meilisearch
+After=network.target
 
-    # PHP Redis
-    echo -e "\n$Cyan Installing PHP Redis ... $Color_Off"
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/meilisearch --master-key=masterKey123 --env=production
+Restart=always
 
-    printf "\n" | pecl install redis > /dev/null
-
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload
+    systemctl enable --now meilisearch > /dev/null
     echo -e "$IGreen OK $Color_Off"
 
-    # Update Dependencies
-    echo -e "\n$Cyan Updating Dependencies ... $Color_Off"
-
-    apt-get -qq upgrade > /dev/null
-
+    # Bun (За Vite и JS активите)
+    echo -e "\n$Cyan Installing Bun Runtime ... $Color_Off"
+    apt-get -qq install -y unzip > /dev/null
+    curl -fsSL https://bun.sh/install | bash > /dev/null 2>&1
+    # Линкваме го глобално, за да е достъпен за всички
+    ln -sf /root/.bun/bin/bun /usr/local/bin/bun
     echo -e "$IGreen OK $Color_Off"
 
-    # Bun
-    echo -e "\n$Cyan Installing Bun ... $Color_Off"
-
-    apt-get -qq install unzip > /dev/null
-    curl -fsSL https://bun.sh/install | bash >/dev/null 2>&1
-    mv /root/.bun/bin/bun /usr/local/bin/
-    chmod a+x /usr/local/bin/bun
-    . ~/.bashrc
-
+    # Обновяване на всички системни зависимости
+    echo -e "\n$Cyan Final System Upgrade ... $Color_Off"
+    apt-get -qq upgrade -y > /dev/null
     echo -e "$IGreen OK $Color_Off"
 }
 
-# Installs Composer
+# Инсталиране на Composer
 install_composer() {
     echo -e "\n$Cyan Installing Composer ... $Color_Off"
-
-    php -r "readfile('http://getcomposer.org/installer');" | sudo php -- --install-dir=/usr/bin/ --filename=composer > /dev/null
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin/ --filename=composer > /dev/null
     check $? "Installing Composer Failed!"
-
     echo -e "$IGreen OK $Color_Off"
 }
 
-# Adds installer packages
+# Инсталиране на библиотеките на самия инсталатор
 installer_pkgs() {
-    echo -e "\n$Cyan Adding Installer Packages ... $Color_Off"
-
-    composer install -qq > /dev/null 2>&1
-    check $? "Adding Installer Packages Failed!"
-
+    echo -e "\n$Cyan Pulling Installer Dependencies ... $Color_Off"
+    # Пускаме го в основната папка на инсталатора
+    composer install --no-dev --optimize-autoloader -q
+    check $? "Composer Install Failed!"
     echo -e "$IGreen OK $Color_Off"
 }
 
-# Checks the returned code
+# Помощна функция за проверка на грешки
 check() {
     if [ $1 -ne 0 ]; then
-        echo -e "$Red Error: $2 \n Please try re-running the script via 'sudo ./install.sh' $Color_Off"
+        echo -e "$Red Error: $2 \n Please check the logs and try again. $Color_Off"
         exit $1
     fi
 }
 
+# ИЗПЪЛНЕНИЕ
 check_locale
-
 add_ppa ppa:ondrej/php
-
 add_pkgs
-
 install_composer
-
 installer_pkgs
 
-echo -e "\n$Purple Launching The Installer ... $Color_Off"
+echo -e "\n$Purple Launching The PHP Installer ... $Color_Off"
 echo "============================================="
+# Тук извикваме основния PHP файл на инсталатора
 php artisan install
