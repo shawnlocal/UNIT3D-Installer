@@ -50,4 +50,8 @@ return [
 
     /* API Keys */
     'tmdb-key' => '',
+
+    /* Search Engine */
+    'meilisearch_host' => 'http://127.0.0.1:7700',
+    'meilisearch_key' => 'masterKey123', // Този ключ трябва да съвпада с този в ubuntu.sh
 ];
