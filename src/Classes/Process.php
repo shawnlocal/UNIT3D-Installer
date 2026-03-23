@@ -42,7 +42,7 @@ class Process
         $this->io->writeln("\n<fg=cyan>$command</>");
 
         //$process = new SymfonyProcess($command, $cwd, $env, null, $timeout);
-        $process = new SymfonyProcess([$command], $cwd, $env, null, $timeout);
+        $process = SymfonyProcess::fromShellCommandline($command, $cwd, $env, null, $timeout);
         $process->setIdleTimeout(900);
 
         $inputStream = null;
