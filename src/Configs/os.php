@@ -18,6 +18,7 @@ return [
             'nginx'           => 'High-performance Web Server',
             'mysql-server'    => 'MySQL Database Server',
             'supervisor'      => 'Process Control System (for Queues)',
+            'nodejs'          => 'JavaScript Run-time Environment (Includes npm)',
             'git'             => 'Version Control System',
             'tmux'            => 'Terminal Multiplexer',
             'vim'             => 'Advanced Text Editor',
