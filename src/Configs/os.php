@@ -28,7 +28,6 @@ return [
             'unzip'           => 'File Decompression Tool',
             'htop'            => 'Interactive Process Viewer',
             'cron'            => 'Job Scheduler Daemon',
-            'ufw'             => 'Uncomplicated Firewall',
             'ca-certificates' => 'Common CA Certificates',
             'gnupg'           => 'GNU Privacy Guard (Encryption)',
         ],
