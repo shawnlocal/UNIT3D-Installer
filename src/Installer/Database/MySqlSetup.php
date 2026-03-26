@@ -49,7 +49,7 @@ class MySqlSetup extends BaseInstaller
             'service mysql start',
             "mysqladmin -u root password $root_pass",
             'chmod 600 /root/.my.cnf'
-        ]);
+        ], true);
 
         /*
          * Critical
@@ -63,7 +63,7 @@ class MySqlSetup extends BaseInstaller
             "mysql -e \"ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '$root_pass'\"",
             "mysql -e \"DELETE FROM mysql.user WHERE User=''\"",
             "mysql -e \"DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1')\"",
-        ]);
+        ], true);
 
         /*
          * Non-Critical
